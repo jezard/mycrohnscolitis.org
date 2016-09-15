@@ -2,16 +2,16 @@
 {{template "header" .}}
 <div class="content">
 	<h2>User</h2>
-	<p>Name: {{.Name}} [{{.LastName}}, {{.FirstName}}]</p>
-    <p>Email: {{.Email}}</p>
-    <p>NickName: {{.NickName}}</p>
-    <p>Location: {{.Location}}</p>
-    <p>AvatarURL: {{.AvatarURL}} <img src="{{.AvatarURL}}"></p>
-    <p>Description: {{.Description}}</p>
-    <p>UserID: {{.UserID}}</p>
-    <p>AccessToken: {{.AccessToken}}</p>
-    <p>ExpiresAt: {{.ExpiresAt}}</p>
-    <p>RefreshToken: {{.RefreshToken}}</p>
+	<p>Name: {{.User.Name}} [{{.User.LastName}}, {{.User.FirstName}}]</p>
+    <p>Email: {{.User.Email}}</p>
+    <p>NickName: {{.User.NickName}}</p>
+    <p>Location: {{.User.Location}}</p>
+    <p>AvatarURL: {{.User.AvatarURL}} <img src="{{.User.AvatarURL}}"></p>
+    <p>Description: {{.User.Description}}</p>
+    <p>UserID: {{.User.UserID}}</p>
+    <p>AccessToken: {{.User.AccessToken}}</p>
+    <p>ExpiresAt: {{.User.ExpiresAt}}</p>
+    <p>RefreshToken: {{.User.RefreshToken}}</p>
 </div>
 {{template "footer" .}}
 {{end}}
