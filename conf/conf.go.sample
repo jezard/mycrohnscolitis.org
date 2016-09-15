@@ -5,8 +5,17 @@ import (
 	"os"
 )
 
+//Config - settings to hide...
 type Config struct {
-	DbHost, Xpath, Tpath, UploadDir, MySQLHost, MySQLDB, MySQLUser, MySQLPass, DemoUser string
+	DbHost,
+	Xpath,
+	Tpath,
+	UploadDir,
+	MySQLHost,
+	MySQLDB,
+	MySQLUser,
+	MySQLPass,
+	DemoUser string
 }
 
 var Conf Config

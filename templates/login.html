@@ -1,0 +1,10 @@
+{{define "login"}}
+{{template "header" .}}
+<div class="content">
+	<h2>Login</h2>
+	{{range $key,$value:=.Providers}}
+        <p><a href="/auth/{{$value}}">Log in with {{index $.ProvidersMap $value}}</a></p>
+    {{end}}
+</div>
+{{template "footer" .}}
+{{end}}
