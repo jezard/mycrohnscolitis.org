@@ -31,7 +31,8 @@ type Page struct {
 }
 
 func init() {
-	gothic.Store = sessions.NewFilesystemStore(os.TempDir(), []byte("goth-example"))
+	gothic.Store = sessions.NewFilesystemStore(os.TempDir(), []byte("authuser"))
+	//sessions.FilesystemStore.Get
 }
 
 //Display the named template
@@ -64,9 +65,14 @@ func main() {
 			fmt.Fprintln(w, err)
 			return
 		}
-		//t, _ := template.New("foo").Parse(userTemplate)
-		//t.Execute(w, user)
-		fmt.Printf("User: %#v", user) //all the information is stored in $user
+
+		// Set some session Values
+		session, _ := gothic.Store.Get(r, "authuser")
+		session.Values["user"] = user
+		session.Save(r, w)
+
+		//fmt.Printf("User: %#v", user) //all the information is stored in $user
+		fmt.Printf("session %#v", session.Values)
 		display(w, "user", &Page{Title: "User Page", User: user})
 	})
 
@@ -89,6 +95,8 @@ func main() {
 
 //HomeHandler - do homepage stuff
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := gothic.Store.Get(r, "authuser")
+	fmt.Printf("session %#v", session.Values)
 	fmt.Println("Home Page")
 	display(w, "home", &Page{Title: "Home Page"})
 }
