@@ -11,5 +11,4 @@ Get all required packages including:
 "github.com/gorilla/sessions"
 "github.com/markbates/goth"
 
-Nodejs, npm?
 
