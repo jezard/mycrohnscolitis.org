@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/pat"
 	"github.com/gorilla/sessions"
 	"github.com/jezard/mycrohnscolitis.org/conf"
+	"github.com/jezard/mycrohnscolitis.org/diary"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/gplus"
@@ -22,7 +23,7 @@ import (
 var config = conf.Configuration()
 
 //Compile templates on start (http://sanatgersappa.blogspot.co.uk/2013/11/creating-master-page-for-your-go-web-app.html)
-var templates = template.Must(template.ParseFiles(config.Tpath+"reused/header.html", config.Tpath+"reused/footer.html", config.Tpath+"home.html", config.Tpath+"about.html", config.Tpath+"login.html", config.Tpath+"user.html"))
+var templates = template.Must(template.ParseFiles(config.Tpath+"reused/header.html", config.Tpath+"reused/footer.html", config.Tpath+"home.html", config.Tpath+"about.html", config.Tpath+"login.html", config.Tpath+"user.html", config.Tpath+"diary-overview.html"))
 
 //Page - content to be passed to page
 type Page struct {
@@ -31,6 +32,7 @@ type Page struct {
 	ProvidersMap map[string]string
 	User         goth.User
 	ValidUser    bool
+	Overview     diary.Overview
 }
 
 func init() {
@@ -103,6 +105,7 @@ func main() {
 		session.Save(r, w)
 		display(w, "home", &Page{Title: "Home Page", ValidUser: false})
 	})
+	p.Get("/diary/overview", diaryOverviewHandler)
 	http.ListenAndServe(":8080", p)
 }
 
@@ -117,6 +120,11 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	// fmt.Printf("session %s", user.UserID)
 
 	display(w, "home", &Page{Title: "Home Page", ValidUser: isValid})
+}
+
+func diaryOverviewHandler(w http.ResponseWriter, r *http.Request) {
+	_, isValid := ValidUser(r)
+	display(w, "diary-overview", &Page{Title: "Diary Overview", ValidUser: isValid, Overview: diary.GetOverview()})
 }
 
 //AboutHandler - do about page stuff
