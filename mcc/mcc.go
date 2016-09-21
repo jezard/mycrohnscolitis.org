@@ -72,7 +72,7 @@ func main() {
 		session.Save(r, w)
 
 		//fmt.Printf("User: %#v", user) //all the information is stored in $user
-		fmt.Printf("session %#v", session.Values)
+		//fmt.Printf("session %#v", session.Values)
 		display(w, "user", &Page{Title: "User Page", User: user})
 	})
 
@@ -96,8 +96,12 @@ func main() {
 //HomeHandler - do homepage stuff
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := gothic.Store.Get(r, "authuser")
-	fmt.Printf("session %#v", session.Values)
-	fmt.Println("Home Page")
+
+	//get the authorised user (if any)
+	s := session.Values["user"]
+	user, _ := s.(goth.User)
+	fmt.Printf("session %s", user.UserID) //we can get values like this...
+
 	display(w, "home", &Page{Title: "Home Page"})
 }
 
