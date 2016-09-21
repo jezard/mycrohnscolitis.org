@@ -120,7 +120,7 @@ func main() {
 
 //HomeHandler - do homepage stuff
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	_, isValid := ValidUser(r)
+	_, isValid := ValidateUser(r)
 
 	//snippet showing how we can get values directly from the session if required
 	// session, _ := gothic.Store.Get(r, "authuser")
@@ -132,13 +132,13 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func diaryOverviewHandler(w http.ResponseWriter, r *http.Request) {
-	_, isValid := ValidUser(r)
+	_, isValid := ValidateUser(r)
 	display(w, "diary-overview", &Page{Title: "Diary Overview", ValidUser: isValid, Overview: diary.GetOverview()})
 }
 
 //AboutHandler - do about page stuff
 func AboutHandler(w http.ResponseWriter, r *http.Request) {
-	_, isValid := ValidUser(r)
+	_, isValid := ValidateUser(r)
 	display(w, "about", &Page{Title: "About Page", ValidUser: isValid})
 }
 
@@ -152,7 +152,7 @@ func login(db *sql.DB, user goth.User) (id int, err error) {
 }
 
 //ValidUser return the user_id for use in queries and bool for hiding / showing in templates
-func ValidUser(r *http.Request) (userID int, validUser bool) {
+func ValidateUser(r *http.Request) (userID int, validUser bool) {
 	validUser = false
 	session, _ := gothic.Store.Get(r, "authuser")
 
