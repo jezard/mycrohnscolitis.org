@@ -127,7 +127,7 @@ func login(user goth.User) (err error) {
 	}
 	defer db.Close()
 
-	_, err = db.Query("INSERT INTO user (auth_userid, auth_provider, access_token, name, nickname, avatar_url) VALUES (?,?,?,?,?,?)", user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL)
+	_, err = db.Query("INSERT INTO user (auth_userid, auth_provider, access_token, name, nickname, avatar_url) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE auth_userid=?, auth_provider=?, access_token=?, name=?, nickname=?, avatar_url=?", user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL, user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL) //these inputs repeat once to match
 
 	return
 }
