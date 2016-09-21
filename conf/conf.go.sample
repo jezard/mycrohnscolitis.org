@@ -10,7 +10,6 @@ type Config struct {
 	DbHost,
 	Xpath,
 	Tpath,
-	UploadDir,
 	MySQLHost,
 	MySQLDB,
 	MySQLUser,
@@ -30,7 +29,6 @@ func Configuration() Config {
 			Conf.Tpath = ""//templates
 			Conf.Xpath = ""//$GOBIN
 			Conf.DbHost = "other dbhost!"
-			Conf.UploadDir = ""
 			Conf.MySQLHost = ""
 			Conf.MySQLDB = ""
 			Conf.MySQLUser = ""
@@ -39,7 +37,6 @@ func Configuration() Config {
 			Conf.Tpath = ""
 			Conf.Xpath = ""
 			Conf.DbHost = "127.0.0.1"
-			Conf.UploadDir = ""
 			Conf.MySQLHost = "127.0.0.1"
 			Conf.MySQLDB = "mycrohnscolitis"
 			Conf.MySQLUser = ""

@@ -2,12 +2,14 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
 	"net/http"
 	"os"
 	"sort"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/pat"
 	"github.com/gorilla/sessions"
 	"github.com/jezard/mycrohnscolitis.org/conf"
@@ -73,6 +75,13 @@ func main() {
 
 		//fmt.Printf("User: %#v", user) //all the information is stored in $user
 		//fmt.Printf("session %#v", session.Values)
+
+		//save / update
+		err = login(user)
+		if err != nil {
+			fmt.Printf("Error: %s", err.Error())
+		}
+
 		display(w, "user", &Page{Title: "User Page", User: user})
 	})
 
@@ -85,7 +94,6 @@ func main() {
 	fmt.Println("works")
 	p.HandleFunc("/", HomeHandler)
 	p.HandleFunc("/about", AboutHandler)
-	// r.HandleFunc("/login", LoginHandler)
 	// r.HandleFunc("/view-user", ViewUserHandler) //test page
 	// r.HandleFunc("/diary/new/", DiaryNewHandler)
 	// r.HandleFunc("/diary/view/", DiaryViewHandler)
@@ -109,4 +117,17 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 func AboutHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("About Page")
 	display(w, "about", &Page{Title: "About Page"})
+}
+
+func login(user goth.User) (err error) {
+	fmt.Println("Login mysql function")
+	db, err := sql.Open("mysql", config.MySQLUser+":"+config.MySQLPass+"@tcp("+config.MySQLHost+":3306)/"+config.MySQLDB)
+	if err != nil {
+		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
+	}
+	defer db.Close()
+
+	_, err = db.Query("INSERT INTO user (auth_userid, auth_provider, access_token, name, nickname, avatar_url) VALUES (?,?,?,?,?,?)", user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL)
+
+	return
 }
