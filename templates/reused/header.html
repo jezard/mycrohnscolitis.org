@@ -19,7 +19,14 @@
 	        <ul class="nav navbar-nav">
 	        	<li><a href="/">Main</a></li>
 	        	<li><a href="/about">About</a></li>
+						{{ if .ValidUser }}
+						<!-- options for logged in users -->
+						<li><a href="/logout">Log out</a></li>
+						{{ else }}
+						<!-- options for logged out users -->
 						<li><a href="/login">Login</a></li>
+						{{ end }}
+						
 	        </ul>
 	      </div>
 	    </nav>

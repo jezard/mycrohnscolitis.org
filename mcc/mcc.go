@@ -30,11 +30,11 @@ type Page struct {
 	Providers    []string
 	ProvidersMap map[string]string
 	User         goth.User
+	ValidUser    bool
 }
 
 func init() {
 	gothic.Store = sessions.NewFilesystemStore(os.TempDir(), []byte("authuser"))
-	//sessions.FilesystemStore.Get
 }
 
 //Display the named template
@@ -44,6 +44,12 @@ func display(w http.ResponseWriter, tmpl string, data interface{}) {
 
 // SEE: https://www.socketloop.com/tutorials/golang-gorilla-mux-routing-example
 func main() {
+	db, err := sql.Open("mysql", config.MySQLUser+":"+config.MySQLPass+"@tcp("+config.MySQLHost+":3306)/"+config.MySQLDB)
+	if err != nil {
+		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
+	}
+	defer db.Close()
+
 	goth.UseProviders(
 		twitter.New(os.Getenv("TWITTER_KEY"), os.Getenv("TWITTER_SECRET"), "http://www.mycrohnscolitis.org:8080/auth/twitter/callback"),
 		gplus.New(os.Getenv("GPLUS_KEY"), os.Getenv("GPLUS_SECRET"), "http://www.mycrohnscolitis.org:8080/auth/gplus/callback"), //https://console.developers.google.com/apis/credentials/wizard?api=plus-json.googleapis.com&project=mycrohnscolitis&authuser=1
@@ -58,76 +64,87 @@ func main() {
 	}
 	sort.Strings(keys)
 
+	//handle the various page requests
 	p := pat.New()
-
 	p.Get("/auth/{provider}/callback", func(w http.ResponseWriter, r *http.Request) {
-
 		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
 			fmt.Fprintln(w, err)
 			return
 		}
 
+		//save / update user to MySQL database
+		userID, err := login(db, user) //retrieve the local user id that matches our twitter or google ID
+		if err != nil {
+			fmt.Printf("Error: %s", err.Error())
+		}
+
 		// Set some session Values
 		session, _ := gothic.Store.Get(r, "authuser")
-		session.Values["user"] = user
+		session.Values["user"] = user     //predefined struct
+		session.Values["userID"] = userID //our DB value / key
 		session.Save(r, w)
 
 		//fmt.Printf("User: %#v", user) //all the information is stored in $user
 		//fmt.Printf("session %#v", session.Values)
 
-		//save / update
-		err = login(user)
-		if err != nil {
-			fmt.Printf("Error: %s", err.Error())
-		}
-
-		display(w, "user", &Page{Title: "User Page", User: user})
+		display(w, "user", &Page{Title: "User Page", User: user, ValidUser: true})
 	})
-
 	p.Get("/auth/{provider}", gothic.BeginAuthHandler)
 	p.Get("/login", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Login")
 		display(w, "login", &Page{Title: "Login Page", Providers: keys, ProvidersMap: m})
 	})
-
-	fmt.Println("works")
 	p.HandleFunc("/", HomeHandler)
 	p.HandleFunc("/about", AboutHandler)
-	// r.HandleFunc("/view-user", ViewUserHandler) //test page
-	// r.HandleFunc("/diary/new/", DiaryNewHandler)
-	// r.HandleFunc("/diary/view/", DiaryViewHandler)
-	// r.HandleFunc("/diary/edit/", DiaryEditHandler)
+	p.Get("/logout", func(w http.ResponseWriter, r *http.Request) {
+		//delete our session
+		session, _ := gothic.Store.Get(r, "authuser")
+		session.Options.MaxAge = -1
+		session.Save(r, w)
+		display(w, "home", &Page{Title: "Home Page", ValidUser: false})
+	})
 	http.ListenAndServe(":8080", p)
 }
 
 //HomeHandler - do homepage stuff
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := gothic.Store.Get(r, "authuser")
+	_, isValid := ValidUser(r)
 
-	//get the authorised user (if any)
-	s := session.Values["user"]
-	user, _ := s.(goth.User)
-	fmt.Printf("session %s", user.UserID) //we can get values like this...
+	//snippet showing how we can get values directly from the session if required
+	// session, _ := gothic.Store.Get(r, "authuser")
+	// s := session.Values["user"]
+	// user, _ := s.(goth.User)
+	// fmt.Printf("session %s", user.UserID)
 
-	display(w, "home", &Page{Title: "Home Page"})
+	display(w, "home", &Page{Title: "Home Page", ValidUser: isValid})
 }
 
 //AboutHandler - do about page stuff
 func AboutHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("About Page")
-	display(w, "about", &Page{Title: "About Page"})
+	_, isValid := ValidUser(r)
+	display(w, "about", &Page{Title: "About Page", ValidUser: isValid})
 }
 
-func login(user goth.User) (err error) {
-	fmt.Println("Login mysql function")
-	db, err := sql.Open("mysql", config.MySQLUser+":"+config.MySQLPass+"@tcp("+config.MySQLHost+":3306)/"+config.MySQLDB)
-	if err != nil {
-		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
-	}
-	defer db.Close()
-
+func login(db *sql.DB, user goth.User) (id int, err error) {
 	_, err = db.Query("INSERT INTO user (auth_userid, auth_provider, access_token, name, nickname, avatar_url) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE auth_userid=?, auth_provider=?, access_token=?, name=?, nickname=?, avatar_url=?", user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL, user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL) //these inputs repeat once to match
 
+	//get the id for the logged in user
+	id = 0
+	err = db.QueryRow("SELECT id FROM user WHERE auth_userid = ? LIMIT 1", user.UserID).Scan(&id)
+	return
+}
+
+//ValidUser return the user_id for use in queries and bool for hiding / showing in templates
+func ValidUser(r *http.Request) (userID int, validUser bool) {
+	validUser = false
+	session, _ := gothic.Store.Get(r, "authuser")
+
+	//get the authorised user (if any)
+	s := session.Values["userID"]
+	userID, _ = s.(int)
+
+	if userID != 0 {
+		validUser = true
+	}
 	return
 }
