@@ -28,6 +28,7 @@ func Configuration() Config {
 			//PRODUCTION
 			Conf.Tpath = ""//templates
 			Conf.Xpath = ""//$GOBIN
+			Conf.Rpath = ""
 			Conf.DbHost = "other dbhost!"
 			Conf.MySQLHost = ""
 			Conf.MySQLDB = ""
@@ -36,6 +37,7 @@ func Configuration() Config {
 		} else { //imac
 			Conf.Tpath = ""
 			Conf.Xpath = ""
+			Conf.Rpath = ""
 			Conf.DbHost = "127.0.0.1"
 			Conf.MySQLHost = "127.0.0.1"
 			Conf.MySQLDB = "mycrohnscolitis"

@@ -37,6 +37,7 @@ type Page struct {
 
 func init() {
 	gothic.Store = sessions.NewFilesystemStore(os.TempDir(), []byte("authuser"))
+
 }
 
 //Display the named template
@@ -46,6 +47,9 @@ func display(w http.ResponseWriter, tmpl string, data interface{}) {
 
 // SEE: https://www.socketloop.com/tutorials/golang-gorilla-mux-routing-example
 func main() {
+	//http.Handle("/resources/", http.FileServer(http.Dir("/Users/Jeremy/projects/github/mycrohnscolitis.org/front/")))
+	// http.Handle("/resources/", http.FileServer(http.Dir("/Users/Jeremy/projects/github/mycrohnscolitis.org/front/")))
+
 	db, err := sql.Open("mysql", config.MySQLUser+":"+config.MySQLPass+"@tcp("+config.MySQLHost+":3306)/"+config.MySQLDB)
 	if err != nil {
 		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
@@ -106,6 +110,11 @@ func main() {
 		display(w, "home", &Page{Title: "Home Page", ValidUser: false})
 	})
 	p.Get("/diary/overview", diaryOverviewHandler)
+
+	//serve the static resource files from /
+	p.PathPrefix("/").Handler(http.FileServer(http.Dir(config.Rpath)))
+	http.Handle("/", p)
+
 	http.ListenAndServe(":8080", p)
 }
 

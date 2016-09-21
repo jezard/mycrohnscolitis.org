@@ -3,21 +3,20 @@
 <html>
 	<head>
 		<title>{{.Title}}</title>
-		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">
-		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-theme.min.css">
-		<style type="text/css">
-			body {padding-bottom: 70px;}
-			.content {margin:10px;}
-		</style>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<!--Import Google Icon Font-->
+      <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+      <!--Import materialize.css-->
+  		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.7/css/materialize.min.css">
+			<link rel="stylesheet" href="/styles/main.css">
 	</head>
 	<body>
-	    <nav class="navbar navbar-default" role="navigation">
-	      <div class="navbar-header">
-	        <a class="navbar-brand" href="/">Go App</a>
-	      </div>
-	      <div class="collapse navbar-collapse navbar-ex1-collapse">  
-	        <ul class="nav navbar-nav">
-	        	<li><a href="/">Main</a></li>
+		<header>
+		<nav class="orange darken-4">
+			<div class="nav-wrapper container">
+				<a href="#" class="brand-logo">Logo</a>
+				<ul id="nav-mobile" class="right hide-on-med-and-down">
+					<li><a href="/">Main</a></li>
 	        	<li><a href="/about">About</a></li>
 						{{ if .ValidUser }}
 						<!-- options for logged in users -->
@@ -27,8 +26,9 @@
 						<!-- options for logged out users -->
 						<li><a href="/login">Login</a></li>
 						{{ end }}
-						
-	        </ul>
-	      </div>
-	    </nav>
+				</ul>
+			</div>
+		</nav>
+		</header>
+		<main  class="container">
 {{end}}
