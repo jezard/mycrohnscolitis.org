@@ -16,8 +16,10 @@ import (
 	"github.com/jezard/mycrohnscolitis.org/diary"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/facebook"
 	"github.com/markbates/goth/providers/gplus"
 	"github.com/markbates/goth/providers/twitter"
+	//"github.com/markbates/goth/providers/twitter"
 )
 
 var config = conf.Configuration()
@@ -37,8 +39,9 @@ type Page struct {
 
 func init() {
 	gothic.Store = sessions.NewFilesystemStore(os.TempDir(), []byte("authuser"))
-
 }
+
+var store = sessions.NewFilesystemStore(os.TempDir(), []byte("userIdentity"))
 
 //Display the named template
 func display(w http.ResponseWriter, tmpl string, data interface{}) {
@@ -47,8 +50,6 @@ func display(w http.ResponseWriter, tmpl string, data interface{}) {
 
 // SEE: https://www.socketloop.com/tutorials/golang-gorilla-mux-routing-example
 func main() {
-	//http.Handle("/resources/", http.FileServer(http.Dir("/Users/Jeremy/projects/github/mycrohnscolitis.org/front/")))
-	// http.Handle("/resources/", http.FileServer(http.Dir("/Users/Jeremy/projects/github/mycrohnscolitis.org/front/")))
 
 	db, err := sql.Open("mysql", config.MySQLUser+":"+config.MySQLPass+"@tcp("+config.MySQLHost+":3306)/"+config.MySQLDB)
 	if err != nil {
@@ -57,12 +58,14 @@ func main() {
 	defer db.Close()
 
 	goth.UseProviders(
+		facebook.New(os.Getenv("FACEBOOK_KEY"), os.Getenv("FACEBOOK_SECRET"), "http://www.mycrohnscolitis.org:8080/auth/facebook/callback"), //https://developers.facebook.com/apps/1136643983096464/dashboard/
 		twitter.New(os.Getenv("TWITTER_KEY"), os.Getenv("TWITTER_SECRET"), "http://www.mycrohnscolitis.org:8080/auth/twitter/callback"),
 		gplus.New(os.Getenv("GPLUS_KEY"), os.Getenv("GPLUS_SECRET"), "http://www.mycrohnscolitis.org:8080/auth/gplus/callback"), //https://console.developers.google.com/apis/credentials/wizard?api=plus-json.googleapis.com&project=mycrohnscolitis&authuser=1
 	)
 	m := make(map[string]string)
-	m["twitter"] = "Twitter"
+	m["facebook"] = "Facebook"
 	m["gplus"] = "Google Plus"
+	m["twitter"] = "Twitter"
 
 	var keys []string
 	for k := range m {
@@ -80,19 +83,14 @@ func main() {
 		}
 
 		//save / update user to MySQL database
-		userID, err := login(db, user) //retrieve the local user id that matches our twitter or google ID
+		err = login(db, user) //retrieve the local user id that matches our twitter or google ID
 		if err != nil {
 			fmt.Printf("Error: %s\n", err.Error())
 		}
 
-		// Set some session Values
-		session, _ := gothic.Store.Get(r, "authuser")
-		session.Values["user"] = user     //predefined struct
-		session.Values["userID"] = userID //our DB value / key
-		session.Save(r, w)
-
-		//fmt.Printf("User: %#v", user) //all the information is stored in $user
-		//fmt.Printf("session %#v", session.Values)
+		mysession, _ := store.Get(r, "userIdentity")
+		mysession.Values["accessToken"] = user.AccessToken
+		mysession.Save(r, w)
 
 		display(w, "user", &Page{Title: "User Page", User: user, ValidUser: true})
 	})
@@ -104,7 +102,7 @@ func main() {
 	p.HandleFunc("/about", AboutHandler)
 	p.Get("/logout", func(w http.ResponseWriter, r *http.Request) {
 		//delete our session
-		session, _ := gothic.Store.Get(r, "authuser")
+		session, _ := store.Get(r, "userIdentity")
 		session.Options.MaxAge = -1
 		session.Save(r, w)
 		display(w, "home", &Page{Title: "Home Page", ValidUser: false})
@@ -126,7 +124,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	// session, _ := gothic.Store.Get(r, "authuser")
 	// s := session.Values["user"]
 	// user, _ := s.(goth.User)
-	// fmt.Printf("session %s", user.UserID)
+	// fmt.Printf("session %s\n", user.AccessToken)
 
 	display(w, "home", &Page{Title: "Home Page", ValidUser: isValid})
 }
@@ -142,25 +140,32 @@ func AboutHandler(w http.ResponseWriter, r *http.Request) {
 	display(w, "about", &Page{Title: "About Page", ValidUser: isValid})
 }
 
-func login(db *sql.DB, user goth.User) (id int, err error) {
+func login(db *sql.DB, user goth.User) (err error) {
 	_, err = db.Query("INSERT INTO user (auth_userid, auth_provider, access_token, name, nickname, avatar_url, last_login) VALUES (?,?,?,?,?,?, NOW()) ON DUPLICATE KEY UPDATE auth_userid=?, auth_provider=?, access_token=?, name=?, nickname=?, avatar_url=?, last_login=NOW()", user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL, user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL) //these inputs repeat once to match
 
-	//get the id for the logged in user
-	id = 0
-	_ = db.QueryRow("SELECT id FROM user WHERE auth_userid = ? LIMIT 1", user.UserID).Scan(&id)
 	return
 }
 
 //ValidateUser return the user_id for use in queries and bool for hiding / showing in templates
-func ValidateUser(r *http.Request) (userID int, validUser bool) {
+func ValidateUser(r *http.Request) (id int, validUser bool) {
+
 	validUser = false
-	session, _ := gothic.Store.Get(r, "authuser")
 
-	//get the authorised user (if any)
-	s := session.Values["userID"]
-	userID, _ = s.(int)
+	db, err := sql.Open("mysql", config.MySQLUser+":"+config.MySQLPass+"@tcp("+config.MySQLHost+":3306)/"+config.MySQLDB)
+	if err != nil {
+		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
+	}
+	defer db.Close()
 
-	if userID != 0 {
+	mysession, _ := store.Get(r, "userIdentity")
+	a := mysession.Values["accessToken"]
+	accessToken, _ := a.(string)
+
+	id = 0
+
+	_ = db.QueryRow("SELECT id FROM user WHERE access_token = ? LIMIT 1", accessToken).Scan(&id)
+
+	if id != 0 {
 		validUser = true
 	}
 	return
