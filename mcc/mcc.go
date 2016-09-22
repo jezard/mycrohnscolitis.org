@@ -82,7 +82,7 @@ func main() {
 		//save / update user to MySQL database
 		userID, err := login(db, user) //retrieve the local user id that matches our twitter or google ID
 		if err != nil {
-			fmt.Printf("Error: %s", err.Error())
+			fmt.Printf("Error: %s\n", err.Error())
 		}
 
 		// Set some session Values
@@ -143,15 +143,19 @@ func AboutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func login(db *sql.DB, user goth.User) (id int, err error) {
-	_, err = db.Query("INSERT INTO user (auth_userid, auth_provider, access_token, name, nickname, avatar_url) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE auth_userid=?, auth_provider=?, access_token=?, name=?, nickname=?, avatar_url=?", user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL, user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL) //these inputs repeat once to match
+	_, err = db.Query("INSERT INTO user (auth_userid, auth_provider, access_token, name, nickname, avatar_url, last_login) VALUES (?,?,?,?,?,?, NOW()) ON DUPLICATE KEY UPDATE auth_userid=?, auth_provider=?, access_token=?, name=?, nickname=?, avatar_url=?, last_login=NOW()", user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL, user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL) //these inputs repeat once to match
+
+	//_, err = db.Query("INSERT INTO user (auth_userid, auth_provider, access_token, name, nickname, avatar_url) VALUES (?,?,?,?,?,?)", user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL) //these inputs repeat once to match
+
+	fmt.Printf("%v\n%v\n%v\n%v\n%v\n%v\n", user.UserID, user.Provider, user.AccessToken, user.Name, user.NickName, user.AvatarURL)
 
 	//get the id for the logged in user
 	id = 0
-	err = db.QueryRow("SELECT id FROM user WHERE auth_userid = ? LIMIT 1", user.UserID).Scan(&id)
+	_ = db.QueryRow("SELECT id FROM user WHERE auth_userid = ? LIMIT 1", user.UserID).Scan(&id)
 	return
 }
 
-//ValidUser return the user_id for use in queries and bool for hiding / showing in templates
+//ValidateUser return the user_id for use in queries and bool for hiding / showing in templates
 func ValidateUser(r *http.Request) (userID int, validUser bool) {
 	validUser = false
 	session, _ := gothic.Store.Get(r, "authuser")

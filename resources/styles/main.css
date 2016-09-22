@@ -6,4 +6,8 @@ body {
 main {
   flex: 1 0 auto; }
 
+.brand-logo img {
+  height: 48px;
+  margin: 8px; }
+
 /*# sourceMappingURL=main.css.map */
