@@ -118,7 +118,7 @@ func main() {
 
 //HomeHandler - do homepage stuff
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	_, isValid := ValidateUser(r)
+	_, isValid := ValidateUser(w, r)
 
 	//snippet showing how we can get values directly from the session if required
 	// session, _ := gothic.Store.Get(r, "authuser")
@@ -130,13 +130,13 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func diaryOverviewHandler(w http.ResponseWriter, r *http.Request) {
-	_, isValid := ValidateUser(r)
+	_, isValid := ValidateUser(w, r)
 	display(w, "diary-overview", &Page{Title: "Diary Overview", ValidUser: isValid, Overview: diary.GetOverview()})
 }
 
 //AboutHandler - do about page stuff
 func AboutHandler(w http.ResponseWriter, r *http.Request) {
-	_, isValid := ValidateUser(r)
+	_, isValid := ValidateUser(w, r)
 	display(w, "about", &Page{Title: "About Page", ValidUser: isValid})
 }
 
@@ -147,7 +147,7 @@ func login(db *sql.DB, user goth.User) (err error) {
 }
 
 //ValidateUser return the user_id for use in queries and bool for hiding / showing in templates
-func ValidateUser(r *http.Request) (id int, validUser bool) {
+func ValidateUser(w http.ResponseWriter, r *http.Request) (id int, validUser bool) {
 
 	validUser = false
 
@@ -167,6 +167,11 @@ func ValidateUser(r *http.Request) (id int, validUser bool) {
 
 	if id != 0 {
 		validUser = true
+	} else {
+		//delete our session
+		session, _ := store.Get(r, "userIdentity")
+		session.Options.MaxAge = -1
+		session.Save(r, w)
 	}
 	return
 }
